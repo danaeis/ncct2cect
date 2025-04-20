@@ -14,6 +14,10 @@ __pycache__/
 *_env
 .env
 # Ignore dataset files
-/data/
-/pars_CT/
-/test_dataset_output/
+data/
+pars_CT/
+test_dataset_output/
+batch*
+.dcm
+.nrrd
+.nii

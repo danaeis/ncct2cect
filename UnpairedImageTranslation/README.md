@@ -106,5 +106,5 @@ The threshold is specified by (--air_threshold -0.997): the value -0.997 indicat
 python convert.py -a results/args -it jpg -R input_dir -o output_dir -b 10 -m enc_x50.npz
 ```
 searches for jpg files recursively under `input_dir` and outputs converted images by the generator dec_y(enc_x(X)) to output_dir.
-If you specify -m enc_y50.npz instead, you get converted images in the opposite way.
+If you specify -m enc_y50.npz instead,.
 A larger batch size (-b 10) increases the conversion speed but may consume too much GPU memory.
