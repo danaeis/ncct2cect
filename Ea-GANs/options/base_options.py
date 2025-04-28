@@ -15,6 +15,7 @@ class BaseOptions():
         self.parser.add_argument('--fineSize', type=int, default=128, help='then crop to this size')
         self.parser.add_argument('--input_nc', type=int, default=1, help='# of input image channels')
         self.parser.add_argument('--output_nc', type=int, default=1, help='# of output image channels')
+        self.parser.add_argument('--target_phase', type=str, default='arterial', help='target contrast phase [arterial | portal-venous]')
         self.parser.add_argument('--ngf', type=int, default=64, help='# of gen filters in first conv layer')
         self.parser.add_argument('--ndf', type=int, default=64, help='# of discrim filters in first conv layer')
         self.parser.add_argument('--which_model_netD', type=str, default='basic', help='selects model to use for netD')
