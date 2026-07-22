@@ -1,0 +1,12 @@
+[submodule "SynDiff"]
+	path = SynDiff
+	url = https://github.com/icon-lab/SynDiff
+[submodule "ResViT"]
+	path = ResViT
+	url = https://github.com/icon-lab/ResViT
+[submodule "CyTran"]
+	path = CyTran
+	url = https://github.com/ristea/cycle-transformer
+[submodule "CFPS-Diff"]
+	path = CFPS-Diff
+	url = https://github.com/Kindyz/CFPS-Diff
