@@ -58,15 +58,70 @@ Notes:
 
 ---
 
-## Per-model adapter (to be added: `<model>/adapter_<model>.py`)
+## Running on OUR VinDr NIfTI data — the concrete path
 
-Each adapter does three things:
-1. Read `../synthetic_CECT/benchmark/split.json` → the train/val/test cases.
-2. Convert our NIfTI cases to the repo's expected input, train, run inference.
-3. Export synthetic CECT **NIfTI on the source grid (HU)** + a manifest CSV.
+Two shared tools convert our NIfTI ↔ the repos' slice formats, so you never touch
+their internals:
 
-Reuse `../synthetic_CECT/infer_volume.py`'s tiling/stitching where a repo emits
-slices or patches rather than whole volumes.
+- **`prep_benchmark_data.py`** — split.json → 2-D axial slices (pix2pix AB-PNG for
+  ResViT/CyTran, or `.mat` for SynDiff). Windows HU→[0,1], resizes to 256, writes
+  `slice_index.csv`. Round-trip verified at ~1.2 HU error on CT-like data.
+- **`reassemble_nifti.py`** — a model's per-slice outputs → per-case CECT NIfTI on
+  the real grid + a scoring `manifest.csv`.
+
+### ResViT (do first — template for CyTran)
+```bash
+# 1. our NIfTI → pix2pix AB-PNG slices on the shared split
+python prep_benchmark_data.py --split ../synthetic_CECT/benchmark/split.json \
+    --format pix2pix --out ResViT/datasets/vindr --size 256
+
+# 2. train  (single-channel CT; AtoB = NCCT→CECT). See ResViT/README for the
+#    two-stage pretrain→resvit recipe; minimal:
+cd ResViT
+python3 train.py --dataroot datasets/vindr --name vindr_resvit --model resvit_one \
+    --which_model_netG resvit --which_direction AtoB --lambda_A 100 \
+    --dataset_mode aligned --norm batch --input_nc 1 --output_nc 1 \
+    --loadSize 256 --fineSize 256 --niter 25 --niter_decay 25 --gpu_ids 0
+
+# 3. inference on the test split → per-slice images
+python3 test.py --dataroot datasets/vindr --name vindr_resvit --model resvit_one \
+    --which_model_netG resvit --which_direction AtoB --dataset_mode aligned \
+    --norm batch --input_nc 1 --output_nc 1 --loadSize 256 --fineSize 256 --phase test
+
+# 4. slices → NIfTI + manifest  (ResViT saves *_fake_B.png; range [-1,1]→ use neg1_1
+#    if it saves raw, or 0_255 if it saves display PNGs — check one file)
+cd ..
+python reassemble_nifti.py --index ResViT/datasets/vindr/slice_index.csv \
+    --slices_dir ResViT/results/vindr_resvit/test_latest/images \
+    --slice_suffix _fake_B --in_range 0_255 --out ResViT/results/vindr_nifti
+```
+
+### CyTran
+Same pix2pix slices (`--format pix2pix`); CyTran's `data/aligned_dataset.py` reads
+the identical layout. Train per CyTran/README pointing `--dataroot` at
+`CyTran/datasets/vindr` (or reuse ResViT's output dir), then reassemble the same way
+(check its generated-slice suffix).
+
+### SynDiff
+```bash
+python prep_benchmark_data.py --split ../synthetic_CECT/benchmark/split.json \
+    --format mat --out SynDiff/data/vindr            # data_{train,val,test}_{NCCT,CECT}.mat
+# train (contrast1=NCCT contrast2=CECT); see SynDiff/README. Inference writes slices
+# (or a .mat) → reassemble with --in_range neg1_1 (SynDiff normalises to [-1,1]).
+```
+Note SynDiff's `LoadDataSet` transposes and pads to 256 — our 256×256 slices need no
+padding, which is why prep resizes to exactly `--size 256`.
+
+### CFPS-Diff (last — roughest, diffusion, multiphase)
+Reads NIfTI natively via `main/Nii_utils.py` / `main/Dataset_gen.py`; point its
+dataset config at our volumes directly (no prep tool needed). It emits multiphase
+output — keep only the venous volume, then build a manifest by hand or with a thin
+wrapper, and score. Consult `CFPS-Diff/Error_troubleshooting.txt` first.
+
+### Fallback adapter contract (any repo not covered above)
+Read `../synthetic_CECT/benchmark/split.json` → convert → train → infer → export
+CECT **NIfTI on the source grid (HU)** + manifest CSV. Reuse
+`../synthetic_CECT/infer_volume.py` stitching for patch/slice outputs.
 
 ## Scoring (after any model produces a manifest)
 
