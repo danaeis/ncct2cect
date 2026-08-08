@@ -1,23 +1,86 @@
-# Ignore large files
+# =============================================================================
+# Model weights / checkpoints
+# =============================================================================
 *.pth
+*.pt
 *.h5
 *.onnx
 *.ckpt
 *.pb
-__pycache__/
-*.log
-.DS_Store
-.vscode/
-.idea/
+*.npz
+*.npy
+*.pkl
+*.safetensors
 
-#Ignore env files
+# =============================================================================
+# Archives and downloaded packages (never commit these — use requirements_*.txt)
+# =============================================================================
+*.whl
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+# partial / in-flight downloads
+*.crdownload
+*.part
+*.download
+# extensionless zip of the Ea-GANs upstream repo
+/Ea_GANs
+
+# =============================================================================
+# Python execution artifacts
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =============================================================================
+# Environments
+# =============================================================================
 *_env
 .env
-# Ignore dataset files
+.venv/
+venv/
+env/
+
+# =============================================================================
+# Medical imaging data (was missing the leading '*' — matched nothing before)
+# =============================================================================
+*.nii
+*.nii.gz
+*.dcm
+*.nrrd
+*.mha
+*.mhd
+*.raw
+
+# =============================================================================
+# Datasets and run outputs
+# =============================================================================
 data/
+datasets/
 pars_CT/
 test_dataset_output/
 batch*
-.dcm
-.nrrd
-.nii
+checkpoints/
+results/
+runs/
+outputs/
+samples/
+wandb/
+*.log
+
+# =============================================================================
+# Editor / OS
+# =============================================================================
+.DS_Store
+.vscode/
+.idea/

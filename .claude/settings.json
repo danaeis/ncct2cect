@@ -16,7 +16,18 @@
       "Bash(sed -n '/class Attention/,/class Transformer/p' models/conv_transformer.py)",
       "Bash(sed -n '/class Transformer/,$p' models/conv_transformer.py)",
       "Bash(python3 -c ' *)",
-      "Bash(python3 -m py_compile infer_cytran.py cytran_vindr_dataset.py)"
+      "Bash(python3 -m py_compile infer_cytran.py cytran_vindr_dataset.py)",
+      "Bash(git submodule *)",
+      "Bash(git -C CyTran status --short)",
+      "Bash(git -C ResViT status --short)",
+      "Bash(git -C CyTran remote -v)",
+      "Bash(git -C CyTran diff --stat)",
+      "Bash(git -C ResViT remote -v)",
+      "Bash(git -C CyTran diff)",
+      "Bash(git status *)",
+      "Bash(xargs -0 du -k)",
+      "Bash(awk '$1>5000{printf \"%.1f MB  %s\\\\n\",$1/1024,$2}')",
+      "Bash(echo \"data/vindr_dataset.py  # installed by ../run_cytran.sh setup\")"
     ],
     "additionalDirectories": [
       "/Users/macbook/develope/thesis/ncct2cect/CyTran/models"

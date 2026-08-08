@@ -1,12 +1,16 @@
 [submodule "SynDiff"]
 	path = SynDiff
 	url = https://github.com/icon-lab/SynDiff
+	ignore = dirty
 [submodule "ResViT"]
 	path = ResViT
 	url = https://github.com/icon-lab/ResViT
+	ignore = dirty
 [submodule "CyTran"]
 	path = CyTran
 	url = https://github.com/ristea/cycle-transformer
+	ignore = dirty
 [submodule "CFPS-Diff"]
 	path = CFPS-Diff
 	url = https://github.com/Kindyz/CFPS-Diff
+	ignore = dirty
