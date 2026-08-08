@@ -5,7 +5,7 @@
 # Prepped to launch on a GPU server (CUDA >= 11.2). Nothing here needs editing;
 # override any variable from the environment, e.g.:
 #
-#   SPLIT=../synthetic_CECT/benchmark/split.json GPU=0 ./run_resvit.sh all
+#   SPLIT=../synthetic_CECT/splits/split.json GPU=0 ./run_resvit.sh all
 #
 # Stages (run one, or `all`):
 #   setup      init ResViT submodule, install deps note, apply compat shims,
@@ -27,7 +27,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESVIT="$HERE/ResViT"
 
-SPLIT="${SPLIT:-$HERE/../synthetic_CECT/benchmark/split.json}"  # shared case split
+SPLIT="${SPLIT:-}"                                              # shared case split
 DATAROOT="${DATAROOT:-$RESVIT/datasets/vindr}"                  # prepped slices
 SIZE="${SIZE:-256}"
 GPU="${GPU:-0}"                                                 # gpu id; -1 = cpu
@@ -52,23 +52,67 @@ export NO_PROXY="$no_proxy"
 
 log() { printf '\n\033[1;36m[run_resvit:%s]\033[0m %s\n' "$1" "$2"; }
 
+# `sed -i` takes a mandatory suffix on BSD/macOS and none on GNU; write through a
+# temp file so this works on either. Fails loudly rather than leaving the source
+# half-patched and a .tmp behind.
+sed_inplace() {
+  local expr="$1" file="$2"
+  if ! sed "$expr" "$file" > "$file.tmp"; then
+    rm -f "$file.tmp"
+    echo "ERROR: sed failed on $file: $expr" >&2
+    exit 1
+  fi
+  mv "$file.tmp" "$file"
+}
+
+# Locate the shared case split. Honour $SPLIT if set, else try the known layouts
+# of the synthetic_CECT sibling repo. Sets $SPLIT or exits with the paths tried.
+resolve_split() {
+  if [ -n "$SPLIT" ]; then
+    [ -f "$SPLIT" ] || { echo "ERROR: split not found: $SPLIT" >&2; exit 1; }
+    return
+  fi
+  local candidates=(
+    "$HERE/../synthetic_CECT/splits/split.json"
+    "$HERE/../synthetic_CECT/benchmark/split.json"
+    "$HERE/../diff_synthetic_CECT/splits/split.json"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [ -f "$c" ]; then SPLIT="$c"; echo "  split: $SPLIT"; return; fi
+  done
+  { echo "ERROR: no split.json found. Tried:"
+    printf '  %s\n' "${candidates[@]}"
+    echo "Set it explicitly:  SPLIT=/path/to/split.json $0 prep"; } >&2
+  exit 1
+}
+
+# The submodule is tracked by SHA, so its working tree carries no patches of ours
+# and any checkout/reset reverts them. Every stage that runs ResViT code calls
+# this first; it is idempotent and silent once applied.
+apply_shims() {
+  # 1) skimage>=0.18 removed compare_psnr -> use peak_signal_noise_ratio.
+  if grep -q "from skimage.measure import compare_psnr as psnr" "$RESVIT/train.py"; then
+    sed_inplace 's#from skimage.measure import compare_psnr as psnr#from skimage.metrics import peak_signal_noise_ratio as psnr#' "$RESVIT/train.py"
+    echo "  shim: train.py psnr import"
+  fi
+  # 2) scipy>=1.3 removed scipy.misc.imresize; it is only used when aspect_ratio
+  #    != 1.0 (never in our path), but the top-level import must not crash.
+  # NB: delimiter is '|', not '#' — the replacement text contains a '#' comment,
+  # which would otherwise terminate the s/// early and be parsed as flags.
+  if grep -q "from scipy.misc import imresize" "$RESVIT/util/visualizer.py"; then
+    sed_inplace 's|from scipy.misc import imresize|imresize = lambda im, size, interp=None: im  # shim: aspect_ratio stays 1.0|' "$RESVIT/util/visualizer.py"
+    echo "  shim: visualizer.py imresize import"
+  fi
+}
+
 # ---- stages -----------------------------------------------------------------
 do_setup() {
   log setup "init ResViT submodule"
   git -C "$HERE" submodule update --init ResViT
 
   log setup "apply compat shims (idempotent)"
-  # 1) skimage>=0.18 removed compare_psnr -> use peak_signal_noise_ratio.
-  if grep -q "from skimage.measure import compare_psnr as psnr" "$RESVIT/train.py"; then
-    sed -i 's#from skimage.measure import compare_psnr as psnr#from skimage.metrics import peak_signal_noise_ratio as psnr#' "$RESVIT/train.py"
-    echo "  patched train.py psnr import"
-  fi
-  # 2) scipy>=1.3 removed scipy.misc.imresize; it is only used when aspect_ratio
-  #    != 1.0 (never in our path), but the top-level import must not crash.
-  if grep -q "from scipy.misc import imresize" "$RESVIT/util/visualizer.py"; then
-    sed -i 's#from scipy.misc import imresize#imresize = lambda im, size, interp=None: im  # shim: aspect_ratio stays 1.0#' "$RESVIT/util/visualizer.py"
-    echo "  patched visualizer.py imresize import"
-  fi
+  apply_shims
 
   log setup "fetch pretrained ViT checkpoint"
   if [ -f "$VIT_CKPT" ]; then
@@ -85,14 +129,15 @@ do_setup() {
 }
 
 do_prep() {
-  [ -f "$SPLIT" ] || { echo "ERROR: split not found: $SPLIT (set SPLIT=...)" >&2; exit 1; }
   log prep "our NIfTI -> pix2pix AB-PNG slices at $DATAROOT"
+  resolve_split
   "$PY" "$HERE/prep_benchmark_data.py" --split "$SPLIT" \
       --format pix2pix --out "$DATAROOT" --size "$SIZE"
 }
 
 do_pretrain() {
   log pretrain "stage 1: res_cnn generator ($((NITER*2)) + $((NITER_DECAY*2)) epochs)"
+  apply_shims
   cd "$RESVIT"
   "$PY" train.py --dataroot "$DATAROOT" --name "$PRE_NAME" --gpu_ids "$GPU_IDS" \
       --model resvit_one --which_model_netG res_cnn --which_direction AtoB \
@@ -106,6 +151,7 @@ do_finetune() {
   local pre_weights="$RESVIT/checkpoints/$PRE_NAME/latest_net_G.pth"
   [ -f "$pre_weights" ] || { echo "ERROR: pretrain weights missing: $pre_weights (run pretrain first)" >&2; exit 1; }
   log finetune "stage 2: full ResViT from $pre_weights"
+  apply_shims
   cd "$RESVIT"
   "$PY" train.py --dataroot "$DATAROOT" --name "$NAME" --gpu_ids "$GPU_IDS" \
       --model resvit_one --which_model_netG resvit --which_direction AtoB \
@@ -120,6 +166,7 @@ do_finetune() {
 
 do_test() {
   log test "inference on the test split -> *_fake_B.png"
+  apply_shims
   cd "$RESVIT"
   "$PY" test.py --dataroot "$DATAROOT" --name "$NAME" --gpu_ids "$GPU_IDS" \
       --model resvit_one --which_model_netG resvit --dataset_mode aligned \

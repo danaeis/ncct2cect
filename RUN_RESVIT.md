@@ -9,7 +9,7 @@ corrected recipe.
 1. **A CUDA GPU** (ResViT needs CUDA ≥ 11.2). This repo's dev container has none
    — run there, not here.
 2. **The VinDr NCCT/CECT NIfTI volumes**, reachable at the paths inside the split.
-3. **The shared split** `../synthetic_CECT/benchmark/split.json` (seed 42), plus
+3. **The shared split** `../synthetic_CECT/splits/split.json` (seed 42), plus
    the sibling `synthetic_CECT` repo for scoring. `prep_benchmark_data.py` reads
    `hu_min/hu_max/target_phase` and the per-case `ncct`/`cect`/`seg` paths from it.
 4. A dedicated Python env:
@@ -22,7 +22,7 @@ corrected recipe.
 ## One command
 
 ```bash
-SPLIT=../synthetic_CECT/benchmark/split.json GPU=0 ./run_resvit.sh all
+SPLIT=../synthetic_CECT/splits/split.json GPU=0 ./run_resvit.sh all
 ```
 
 Or run stages individually: `setup → prep → pretrain → finetune → test →

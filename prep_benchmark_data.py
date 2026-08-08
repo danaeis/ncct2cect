@@ -3,7 +3,7 @@
 Convert our VinDr NCCT/CECT NIfTI volumes into the input formats the benchmark
 repos expect — so every model trains on the SAME cases, our own data.
 
-Reads the shared split (`../synthetic_CECT/benchmark/split.json`) and emits, per
+Reads the shared split (`../synthetic_CECT/splits/split.json`) and emits, per
 phase (train/val/test), 2-D axial slices in one of two layouts:
 
   --format pix2pix   → <out>/<phase>/<case>_<z>.png, side-by-side [A|B] where
@@ -27,7 +27,7 @@ volume is complete; pass --min_tissue_frac >0 to drop near-empty slices from the
 TRAIN/VAL sets only (a training-efficiency choice that never touches test).
 
 Usage:
-    python prep_benchmark_data.py --split ../synthetic_CECT/benchmark/split.json \
+    python prep_benchmark_data.py --split ../synthetic_CECT/splits/split.json \
         --format pix2pix --out ResViT/datasets/vindr --size 256
 """
 

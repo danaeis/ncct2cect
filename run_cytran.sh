@@ -6,7 +6,7 @@
 # split, emit per-case synthetic CECT NIfTI (HU, source grid) + manifest.csv for
 # ../synthetic_CECT/benchmark.py.
 #
-#   SPLIT=../synthetic_CECT/benchmark/split.json GPU=0 ./run_cytran.sh all
+#   SPLIT=../synthetic_CECT/splits/split.json GPU=0 ./run_cytran.sh all
 #
 # Stages (run one, or `all`):
 #   setup       init the CyTran submodule, fix its two broken package imports,
@@ -31,7 +31,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CYTRAN="$HERE/CyTran"
 
-SPLIT="${SPLIT:-$HERE/../synthetic_CECT/benchmark/split.json}"  # shared case split
+SPLIT="${SPLIT:-}"                                              # shared case split
 DATAROOT="${DATAROOT:-$CYTRAN/datasets/vindr}"                  # prepped slices
 SIZE="${SIZE:-256}"             # must be divisible by 2^N_DOWNSAMPLING
 GPU="${GPU:-0}"                 # gpu id; -1 = cpu
@@ -60,8 +60,39 @@ if [ "$GPU" = "-1" ]; then DEVICE=cpu; else DEVICE=cuda; fi
 log() { printf '\n\033[1;36m[run_cytran:%s]\033[0m %s\n' "$1" "$2"; }
 
 # `sed -i` takes a mandatory suffix on BSD/macOS and none on GNU; write through a
-# temp file so setup works on either.
-sed_inplace() { local expr="$1" file="$2"; sed "$expr" "$file" > "$file.tmp" && mv "$file.tmp" "$file"; }
+# temp file so setup works on either. Fails loudly rather than leaving the source
+# half-patched and a .tmp behind.
+sed_inplace() {
+  local expr="$1" file="$2"
+  if ! sed "$expr" "$file" > "$file.tmp"; then
+    rm -f "$file.tmp"
+    echo "ERROR: sed failed on $file: $expr" >&2
+    exit 1
+  fi
+  mv "$file.tmp" "$file"
+}
+
+# Locate the shared case split. Honour $SPLIT if set, else try the known layouts
+# of the synthetic_CECT sibling repo. Sets $SPLIT or exits with the paths tried.
+resolve_split() {
+  if [ -n "$SPLIT" ]; then
+    [ -f "$SPLIT" ] || { echo "ERROR: split not found: $SPLIT" >&2; exit 1; }
+    return
+  fi
+  local candidates=(
+    "$HERE/../synthetic_CECT/splits/split.json"
+    "$HERE/../synthetic_CECT/benchmark/split.json"
+    "$HERE/../diff_synthetic_CECT/splits/split.json"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [ -f "$c" ]; then SPLIT="$c"; echo "  split: $SPLIT"; return; fi
+  done
+  { echo "ERROR: no split.json found. Tried:"
+    printf '  %s\n' "${candidates[@]}"
+    echo "Set it explicitly:  SPLIT=/path/to/split.json $0 prep"; } >&2
+  exit 1
+}
 
 # ---- stages -----------------------------------------------------------------
 do_setup() {
@@ -89,8 +120,8 @@ do_setup() {
 }
 
 do_prep() {
-  [ -f "$SPLIT" ] || { echo "ERROR: split not found: $SPLIT (set SPLIT=...)" >&2; exit 1; }
   log prep "our NIfTI -> pix2pix AB-PNG slices at $DATAROOT"
+  resolve_split
   "$PY" "$HERE/prep_benchmark_data.py" --split "$SPLIT" \
       --format pix2pix --out "$DATAROOT" --size "$SIZE"
 }

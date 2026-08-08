@@ -39,7 +39,7 @@ pip install numpy scipy nibabel pandas xgboost scikit-image
 
 ```bash
 cd synthetic_CECT
-python dump_split.py --seg_suffix _seg_full          # → benchmark/split.json
+python dump_split.py --seg_suffix _seg_full          # → splits/split.json
 ```
 Every external adapter reads this file. Same 20 test cases for everyone.
 
@@ -66,7 +66,7 @@ diff against `analyze_runs.py` before trusting anything downstream.
 Order = cheapest/closest first, so the adapter pattern is proven before the hard
 repos. **Each model needs a small adapter you write once** — the repos train on
 their own data formats, not ours. The adapter does 3 things:
-(a) read `benchmark/split.json`; (b) convert our NIfTI → the repo's input, train,
+(a) read `splits/split.json`; (b) convert our NIfTI → the repo's input, train,
 infer; (c) export synthetic CECT **NIfTI on the source grid (HU)** + a manifest.
 Reuse `infer_volume.py`'s stitching when a repo outputs slices/patches.
 

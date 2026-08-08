@@ -7,7 +7,7 @@ explains the prerequisites, what had to be adapted, and how to score the result.
 ## One command
 
 ```bash
-SPLIT=../synthetic_CECT/benchmark/split.json GPU=0 ./run_cytran.sh all
+SPLIT=../synthetic_CECT/splits/split.json GPU=0 ./run_cytran.sh all
 ```
 
 Stages run individually as `setup → prep → train → infer → reassemble`.
@@ -24,7 +24,7 @@ NITER=1 NITER_DECAY=0 SAVE_EPOCH_FREQ=1 ./run_cytran.sh train
 ## Prerequisites
 
 Same as ResViT: a CUDA GPU, the VinDr NIfTI volumes at the paths inside the
-split, the shared split `../synthetic_CECT/benchmark/split.json` (seed 42), and a
+split, the shared split `../synthetic_CECT/splits/split.json` (seed 42), and a
 dedicated env:
 
 ```bash
@@ -40,7 +40,7 @@ SynDiff / CFPS-Diff envs — those torch pins conflict.
 
 | var | default | note |
 |---|---|---|
-| `SPLIT` | `../synthetic_CECT/benchmark/split.json` | shared 97/20/20 case split |
+| `SPLIT` | `../synthetic_CECT/splits/split.json` | shared 97/20/20 case split |
 | `DATAROOT` | `CyTran/datasets/vindr` | prepped slices |
 | `SIZE` | `256` | must be divisible by `2^N_DOWNSAMPLING` |
 | `GPU` | `0` | `-1` = CPU |
