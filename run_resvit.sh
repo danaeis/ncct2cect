@@ -45,6 +45,11 @@ VIT_URL="https://storage.googleapis.com/vit_models/imagenet21k/R50%2BViT-B_16.np
 PY="${PYTHON:-python3}"
 GPU_IDS="$GPU"
 
+# Never route loopback through the site proxy: it answers CONNECT with 403 and the
+# client stalls on retries. (Outbound URLs, e.g. the ViT checkpoint, still proxy.)
+export no_proxy="localhost,127.0.0.1,::1${no_proxy:+,$no_proxy}"
+export NO_PROXY="$no_proxy"
+
 log() { printf '\n\033[1;36m[run_resvit:%s]\033[0m %s\n' "$1" "$2"; }
 
 # ---- stages -----------------------------------------------------------------
@@ -120,7 +125,8 @@ do_test() {
       --model resvit_one --which_model_netG resvit --dataset_mode aligned \
       --norm batch --phase test --input_nc 1 --output_nc 1 \
       --loadSize "$SIZE" --fineSize "$SIZE" --how_many 1000000 --serial_batches \
-      --results_dir results/ --checkpoints_dir checkpoints/ --which_epoch latest
+      --results_dir results/ --checkpoints_dir checkpoints/ --which_epoch latest \
+      --display_id 0
 }
 
 do_reassemble() {

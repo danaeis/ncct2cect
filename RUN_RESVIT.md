@@ -83,8 +83,9 @@ python benchmark.py --weights orgFeatXGB_CTPhase/xgb_vindr_full.pkl \
 
 ## Next modules (same adapter pattern)
 
-- **CyTran** — same pix2pix slices; near-clone runner, check its output-slice
-  suffix, reassemble the same way.
+- **CyTran** — same pix2pix slices, but *not* a near-clone: the repo needs import
+  shims, its own dataset module and a hand-written inference script. Done —
+  `run_cytran.sh` / [RUN_CYTRAN.md](RUN_CYTRAN.md).
 - **SynDiff** — `prep_benchmark_data.py --format mat`; reassemble `--in_range neg1_1`.
 - **CFPS-Diff** — reads NIfTI natively; roughest, do last; multiphase output, keep
   only the venous volume.

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 15 https://github.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 15 \"https://www.googleapis.com/download/storage/v1/b/vit_models/o/imagenet21k%2FR50%2BViT-B_16.npz?alt=media\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 15 https://hf-mirror.com)",
+      "Bash(curl -s --max-time 20 \"https://huggingface.co/search/full-text?q=R50%2BViT-B_16.npz&type=model\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 15 https://www.modelscope.cn)",
+      "Bash(curl -s --max-time 20 -X POST \"https://www.modelscope.cn/api/v1/dolphin/models\" -H \"Content-Type: application/json\" -d '{\"Name\":\"TransUNet\",\"PageSize\":20,\"PageNumber\":1}')",
+      "Bash(echo \"=== get_scheduler ===\" && sed -n '/def get_scheduler/,/^def /p' models/networks.py && echo \"=== base_dataset head ===\" && sed -n '1,60p' data/base_dataset.py && echo \"=== models/__init__ find ===\" && grep -n \"importlib\\\\|import_module\" models/__init__.py)",
+      "Bash(chmod +x run_cytran.sh)",
+      "Bash(bash -n run_cytran.sh)",
+      "Bash(./run_cytran.sh setup *)",
+      "Bash(python3 -c \"import torch, einops; print\\('torch', torch.__version__, 'einops ok'\\)\")",
+      "Bash(python3 -c \"import numpy, PIL, nibabel; print\\('adapters deps ok'\\)\")",
+      "Bash(sed -n '/class Attention/,/class Transformer/p' models/conv_transformer.py)",
+      "Bash(sed -n '/class Transformer/,$p' models/conv_transformer.py)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m py_compile infer_cytran.py cytran_vindr_dataset.py)"
+    ],
+    "additionalDirectories": [
+      "/Users/macbook/develope/thesis/ncct2cect/CyTran/models"
+    ]
+  }
+}
